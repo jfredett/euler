@@ -119,6 +119,7 @@ module P84
       @board = build_board
       @total_visits = 0
       @die_roll = block
+      @doubles = 0
     end
 
     def total_visits
@@ -137,7 +138,7 @@ module P84
     end
 
     def move_to(location)
-      move_ahead 1, :mark => false #move to the next location, not the current one.
+      move_ahead 1, :mark => false, :interpret => false #move to the next location, not the current one.
       until self.is_on? location
         move_ahead 1, :mark => false, :interpret => false
       end
@@ -149,7 +150,14 @@ module P84
     end
     
     def make_move
-      move_ahead @die_roll.call, :mark => true, :interpret => true
+      roll = @die_roll.call
+      @doubles += 1 if roll[:doubles]
+      if @doubles == 3
+        move_to(:jail)
+        @doubles = 0
+      else
+        move_ahead roll[:roll], :mark => true, :interpret => true, 
+      end
     end
 
     def each_square
@@ -257,6 +265,7 @@ module P84
       player.move_to(:jail)
       super
     end
+
     def name 
       "Go To Jail"
     end
@@ -308,18 +317,27 @@ module P84
   end
 
   def self.simulate(opts)
+    require 'ruby-prof'
+    RubyProf.start
     puts "Running a simulation w/ #{opts[:name]}"
     g = GameSet.new(opts[:fn])
     opts[:iterations].times do |i|
       vputs "steps: #{i}" if i % 100000 == 0
       g.make_move
     end
+    result = RubyProf.stop
+
     i = 0
     g.each_square do |sq|
-      i += 1
       puts "Square: #{i}, #{sq.name} has #{sq.probability_of_visit(g) * 100}% chance of visit"
+      i += 1
     end
     puts "---------------------------"
+    puts "Profiling results"
+    puts
+    printer = RubyProf::FlatPrinter.new(result)
+    printer.print(STDOUT)
+    nil
   end
 end
 
@@ -334,7 +352,8 @@ end
 
 class Fixnum 
   def d(sides)
-    Die.new(sides).roll(self).sum
+    result = Die.new(sides).roll(self)
+    { :roll => result.sum, :doubles => result.count == 2 && result.first == result.last } 
   end
 
 end
