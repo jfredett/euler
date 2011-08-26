@@ -1,6 +1,6 @@
 
 
-$V=1
+$V=nil
 def vputs(string)
   puts string if ENV['V'] || $V
 end
@@ -20,22 +20,18 @@ module P84
       puts "empty" if @deck.empty?
       card = @deck.pop
       @spent_deck << card
-      vputs "drew a card #{card}"
       card
     end
 
     def draw_and_apply_to(player)
-      vputs "player current position #{player.position}"
       draw.apply(player)
-      vputs "player position after card #{player.position}"
     end
 
     def inspect
-      self.class.name.to_s
+      self.class.name.to_s.split('::').last
     end
-    def to_s
-      inspect
-    end
+    alias_method :name, :inspect
+
 
   end
 
@@ -57,7 +53,7 @@ module P84
     protected
     def initialize_deck
       @deck = [Card.inactive] * 6  + 
-        [:go, :jail, :c1, :e3, :h2, :r1, :railroad, :railroad, :utility].map { |s| Card.move(s) } +
+        [:go, :jail, :c1, :e3, :h2, :r1, :rr, :rr, :utility].map { |s| Card.move(s) } +
         [Card.back_three]
     end 
   end
@@ -67,7 +63,7 @@ module P84
   #factory
   class Card
     def self.move(loc)
-      StaticMovement.new(loc)
+      MoveAhead.new(loc)
     end
     def self.inactive
       Card.new
@@ -77,7 +73,6 @@ module P84
     end
 
     def apply(player) 
-      vputs "applying card to player"
       player
     end
 
@@ -103,8 +98,7 @@ module P84
 
   class StaticMoveback < Card
     def apply(player)
-      vputs "moving player back three spaces"
-      player.move_back(3)
+      player.move_ahead -3, :mark => false, :interpret => true
       super
     end
   end
@@ -119,10 +113,16 @@ module P84
   end
 
   class GameSet
-    def initialize
+    def initialize(block)
       @deck = { :cc => CommunityChest.new , :ch => Chance.new } 
       @player_pos = 0   
       @board = build_board
+      @total_visits = 0
+      @die_roll = block
+    end
+
+    def total_visits
+      @total_visits
     end
 
     def position 
@@ -131,13 +131,12 @@ module P84
     end
     
     def move_ahead(spaces = 1, opts = {})
+      mark_space if opts[:mark] 
       move_player(spaces)
       interpret_move if opts[:interpret]
-      mark_space if opts[:mark] 
     end
 
     def move_to(location)
-      vputs "moving player to #{location}"
       move_ahead 1, :mark => false #move to the next location, not the current one.
       until self.is_on? location
         move_ahead 1, :mark => false, :interpret => false
@@ -146,28 +145,32 @@ module P84
     end
 
     def is_on?(space)
-      vputs "comparing #{space} to #{position[:square]}" unless position[:square].to_s == "P84::Square"
       position[:square].is? space
     end
     
     def make_move
-      move_ahead 2.d(6), :mark => true, :interpret => true
+      move_ahead @die_roll.call, :mark => true, :interpret => true
+    end
+
+    def each_square
+      @board.each do |sq|
+        yield sq
+      end
     end
 
     private 
 
     def mark_space
-
+      @total_visits += 1
+      position[:square].mark
     end
 
     def move_player(spaces)
-      vputs "moving player ahead #{spaces} spaces"
       @player_pos = (@player_pos + spaces) % @board.size
     end
 
     def interpret_move
       position[:square].event(self)
-      vputs position
     end
 
     def build_board 
@@ -176,10 +179,9 @@ module P84
         :go,   nil, :cc,      nil, nil, :r1, nil, :ch, nil,       nil,
         :jail, :c1, :utility, nil, nil, :rr, nil, :cc, nil,       nil,
         :nil,  nil, :ch,      nil, :e3, :rr, nil, nil, :utility,  nil,
-        :gtj,  nil, nil,      :cc, nil, :rr, :ch, nil, nil,       nil
+        :gtj,  nil, nil,      :cc, nil, :rr, :ch, nil, nil,       :h2
       ]
       board_spec.each do |sq|
-        vputs "building square for #{sq}"
         case sq  
         when :go, :jail, :c1, :e3, :h2, :rr, :utility
           board << Square.named([sq]) 
@@ -187,29 +189,28 @@ module P84
           board << Square.named([:rr, sq])
         when :cc, :ch
           board << Square.draw_from(@deck[sq])
+        when :gtj
+          board << Square.go_to_jail
         else
           board << Square.inactive
         end
       end
-      #vputs board
       board
     end
-
-
-    #has_a chancedeck
-    #has_a communitydeck
-
-    #can deliver a card from a deck
   end
 
   class Square
+
     def self.inactive
       Square.new
     end
 
     def self.draw_from(deck)
-      deck
-      #DrawCard.new(deck)
+      DrawCard.new(deck)
+    end
+
+    def self.go_to_jail
+      GoToJail.new
     end
 
     def self.named(names)
@@ -224,32 +225,70 @@ module P84
       false
     end
 
+    def mark
+      @times_visited ||= 0
+      @times_visited += 1
+    end
+  
+    def visited? 
+      !!@times_visited
+    end
+
+    def probability_of_visit(gameset)
+      if visited?
+        (@times_visited * 1.0) / gameset.total_visits
+      else
+        0
+      end
+    end
+
     def inspect
-      self.class.name.to_s
+      "#{self.class.name.split('::').last} : #{@times_visited || 0}"
     end
     alias_method :to_s, :inspect
+
+    def name 
+      "Inactive Square"
+    end
   end
 
-  #envious of Deck object
-  #class DrawCard < Square
-    #def initialize(context)
-      #@context = context
-    #end
-    #def event(player)
-      #@context.draw_and_apply_to(player) 
-      #super
-    #end
-    #def is?(space)
-      #@context.is?(space) || super
-    #end
-    #def to_s
-      #@context.to_s
-    #end
-  #end
+  class GoToJail < Square
+    def event(player)
+      player.move_to(:jail)
+      super
+    end
+    def name 
+      "Go To Jail"
+    end
+  end
+
+  #this is a bit envious of Deck+Subobjects, but we need it for it's parent's 
+  #"mark" functionality, so it provides a bit of a proxy
+  class DrawCard < Square
+    def initialize(context)
+      @context = context
+    end
+
+    def event(player)
+      @context.draw_and_apply_to(player) 
+      super
+    end
+
+    def is?(space)
+      @context.is?(space) || super
+    end
+
+    def to_s
+      @context.to_s
+    end
+
+    def name
+      "Draw from #{@context.name}"
+    end
+  end
 
   class Named < Square
     def initialize(names)
-      vputs "building named square with #{[names].flatten}"
       @names = [names].flatten
     end
     def is?(space)
@@ -258,6 +297,29 @@ module P84
     def to_s
       @names.to_s
     end
+    alias_method :name, :to_s
+  end
+
+
+
+  def self.run
+    simulate :name => "2d6", :fn => ->() { 2.d(6) }, :iterations => 10**7
+    simulate :name => "2d4", :fn => ->() { 2.d(4) }, :iterations => 10**7
+  end
+
+  def self.simulate(opts)
+    puts "Running a simulation w/ #{opts[:name]}"
+    g = GameSet.new(opts[:fn])
+    opts[:iterations].times do |i|
+      vputs "steps: #{i}" if i % 100000 == 0
+      g.make_move
+    end
+    i = 0
+    g.each_square do |sq|
+      i += 1
+      puts "Square: #{i}, #{sq.name} has #{sq.probability_of_visit(g) * 100}% chance of visit"
+    end
+    puts "---------------------------"
   end
 end
 
@@ -265,10 +327,7 @@ end
 # patches & dice
 class Array
   def sum
-    sum = 0
-    self.each do |i|
-      sum += i
-    end
+    sum = self.inject(0) { |x,a| x+a }
     sum
   end
 end
@@ -291,6 +350,5 @@ class Die
     result
   end
 end
-
 
 
