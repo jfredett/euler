@@ -1,22 +1,35 @@
 #include <stdio.h>
+#include <stdlib.h>
 
-#define NUMBER_OF_DEFECTS 20000
-#define NUMBER_OF_CHIPS 1000000
-#define SIMULATE simulation(NUMBER_OF_DEFECTS, NUMBER_OF_CHIPS)
-
+int coin_flip() {
+  return !!(rand() % 2);
+}
 
 int simulation(int k, int n) {
-  return 0;
-}
+  int* chips = (int*) malloc(sizeof(int) * n); //allocate an array of `n` integers
+  int result = 1;
 
-int main() {
-  int successes = 0;
-  int total = 0;
+  while (k > 0) {
+    for(int i = 0; i < n; i++) { 
+      if (coin_flip()) { continue; }
 
-  while(1) {
-    if (SIMULATE) { successes++; }
-    total++;
-    printf("Probability: %f", successes / total);
+      if(++chips[i] < 3) {
+        // no critical defects yet, but we assigned a chip defect, so decrement
+        // the count
+        k--;
+      } else {
+        // this batch has a critical defect
+        result = 0;
+        //that's right, bitches, I need to bust free of nested loops.
+        //Since I don't want to duplicate the free (and potentially expose
+        //myself to some memory leak because I screw something else up)
+        //this is a way to keep things DRY., and avoid nasty logic.
+        goto end_of_loop; 
+      }
+    }
   }
-}
+  end_of_loop:
 
+  free(chips);
+  return result;
+}
