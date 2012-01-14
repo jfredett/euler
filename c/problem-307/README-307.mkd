@@ -1,0 +1,41 @@
+#The problem 
+
+`k` defects are randomly distributed amongst `n` integrated-circuit chips
+produced by a factory (any number of defects may be found on a chip and each
+defect is independent of the other defects).
+
+Let `p(k,n)` represent the probability that there is a chip with at least `3`
+defects. For instance `p(3,7) ~ 0.0204081633`.
+
+Find `p(20000, 1000000)` and give your answer rounded to `10` decimal places in
+the form `0.abcdefghij`
+
+#The approach
+
+The approach is to simulate a random batch a few thousand times, and directly
+calculate the probability of a chip with `3` defects. Essentially, we do this:
+
+    simulation(k,n):
+  
+    Create an array of `n` 'chips'
+    while `k` > 0
+      for each element in `chips`
+        flip a fair coin
+          if heads, add a defect to the chip, decrement `k`
+          if tails, do nothing
+        if the chip now has more than `3` defects, break and return true
+    return false
+
+This function will then be run as many times as possible, asymptotically
+approaching `p(k,n)`, in the following way:
+
+    if simulation(k,n)
+      count_success++
+    
+    count_total++
+
+    print count_success / count_total
+
+
+
+
