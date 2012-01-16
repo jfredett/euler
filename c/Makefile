@@ -1,5 +1,8 @@
+#this rapidly becomes terrible, remind me to learn make...
+
+
 CC = clang
-CFLAGS = -Wall -O2 -Werror
+CFLAGS = -Wall -O3 -Werror
 
 build: setup problem-307 problem-205
 
@@ -8,7 +11,7 @@ setup:
 
 problem-307: problem-307.o solver-307.o
 	$(CC) $(CFLAGS) problem-307/obj/problem-307.o problem-307/obj/solver.o -o problem-307/bin/solution
-	ln -sf problem-307/bin/solution bin/solve-307
+	ln -sf ./problem-307/bin/solution bin/solve-307
 
 problem-307.o: 
 	$(CC) $(CFLAGS) -c problem-307/src/problem-307.c problem-307/src/problem-307.h 
@@ -19,7 +22,7 @@ solver-307.o: problem-307.o
 
 problem-205: problem-205.o solver-205.o
 	$(CC) $(CFLAGS) problem-205/obj/problem-205.o problem-205/obj/solver.o -o problem-205/bin/solution
-	ln -sf problem-205/bin/solution bin/solve-205
+	ln -sf ./problem-205/bin/solution bin/solve-205
 
 problem-205.o: 
 	$(CC) $(CFLAGS) -c problem-205/src/problem-205.c problem-205/src/problem-205.h 
