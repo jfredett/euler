@@ -19,3 +19,12 @@ to run a simulation. The latter function will return 1 or 0 depending on if
 peter wins or loses. We'll keep track of the total wins for each player and --
 asymptotically -- we should see the probability converge to whatever it should
 be.
+
+----
+
+The above approach (Monte Carlo simulation) fails because the search space is
+too wide. The number of simulations needed to get 7 digits of precision is
+simply too high (something to the two of 10^12), so it's simply untenable to run
+it for that long. (For reference, we were running about 2 * 10^6 iterations/sec
+(ballparked), so it would have taken about 5 * 10^6 seconds, or about 57 days,
+to finish). 
