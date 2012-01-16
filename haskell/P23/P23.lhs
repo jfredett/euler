@@ -42,7 +42,7 @@ only testing that high.
 > abundants :: Set Integer
 > abundants = fromDistinctAscList [x | x <- [2,4..28123], isAbundant x] 
 
-We can now do a cartestion product to get abundants^2, this will show us all possible sums of two
+We can now do a cartesian product to get abundants^2, this will show us all possible sums of two
 abundant numbers. After that, we can take the complement of the set against the set of all 
 numbers from 1 to 28123, and get the set of all numbers not representable by the sum of two 
 abundants. Fold in a sum, and were done.
