@@ -23,12 +23,6 @@ Find the sum of all the positive integers which cannot be written as the sum of
 two abundant numbers.
 ===============================================================================
 
-Heres the plan, we take the range 24-28123, we then subtract and keep a list of
-all possible abundants we can subtract from each element of the list, without
-resulting in a negative integer. We then look to see if no element of the list
-is abundant, if so, we add that to the sum, otherwise, we throw it away.
-
-
 > import PELib.NumberClasses
 > import PELib.PELib
 > import Data.Set ( Set, fromList, fromDistinctAscList
@@ -36,31 +30,18 @@ is abundant, if so, we add that to the sum, otherwise, we throw it away.
 >		  , fold, (\\))
 > import qualified Data.Set as S
 
-Lets get our list of abundant numbers, we only need up to 28123, because we're
-only testing that high.
+Lets start with a simpler case -- finding whether or not a given number is the
+sum of two abundants. Lets call such numbers "affluent" (since it has two
+abundant "children")
 
-> abundants :: Set Integer
-> abundants = fromDistinctAscList [x | x <- [2,4..28123], isAbundant x] 
+/*> isAffluent :: Integer -> Bool*/
 
-We can now do a cartesian product to get abundants^2, this will show us all possible sums of two
-abundant numbers. After that, we can take the complement of the set against the set of all 
-numbers from 1 to 28123, and get the set of all numbers not representable by the sum of two 
-abundants. Fold in a sum, and were done.
+We know that some abundant numbers can be affluent, since `24` is abundant, and
+the sum of two abundants (`12` and `12`). So here's a natural question -- is
+twice an abundant number always abundant? We can do a quick scan for
+counterexamples with:
 
-> abundantrange :: Set Integer
-> abundantrange = fromDistinctAscList [1..28123*2] -- 28123]
+> counterexample_check = [ x | x <- [1..28123], isAbundant x && (not . isAbundant)(x * 2) ]
 
-> abundants_squared = abundants >< abundants
-
-> (><) 		:: (Ord a, Ord b) => Set a -> Set b -> Set (a,b)
-> s >< t 	=  unions $ S.map (\s' -> S.map (\t' -> (s',t')) t) s
->		where unions = fold union empty
-
-> abundantnonsums :: Set (Integer,Integer) -> Set Integer -> Set Integer
-> abundantnonsums s t = t \\ s'
->		where s' = S.map (uncurry (+)) s
-
-> solvetwentythree :: Integer
-> solvetwentythree = setsum 
->		   $ abundantnonsums abundants_squared abundantrange 
->		   where setsum = fold (+)  0
+Since we only care that this is true for numbers less than 28123, we can just do
+an exhaustive search like the above

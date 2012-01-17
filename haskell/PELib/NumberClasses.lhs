@@ -9,8 +9,6 @@ Currently, there is support for classification by:
 Divisibility-based number classes:
    see http://en.wikipedia.org/wiki/Prime_number
 
-
-
 ===============================================================================
 
 > import PELib.PELib
@@ -69,7 +67,7 @@ which takes an exponent and a number, and returns:
 > divisors :: Integer -> [Integer]
 > divisors k 
 >    | k == 1       = [1]
->    | isPrime k    = [1]
+>    | isPrime k    = [1,k]
 >    | otherwise    = applyClosure closefunc (firstFactor : remnant : divisors remnant)
 >    where
 >         firstFactor = head $ dropWhile (not . (`divides` k)) primes
