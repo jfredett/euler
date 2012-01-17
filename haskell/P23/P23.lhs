@@ -25,23 +25,27 @@ two abundant numbers.
 
 > import PELib.NumberClasses
 > import PELib.PELib
-> import Data.Set ( Set, fromList, fromDistinctAscList
->		  , empty, findMin, deleteMin, union, singleton
->		  , fold, (\\))
-> import qualified Data.Set as S
 
-Lets start with a simpler case -- finding whether or not a given number is the
-sum of two abundants. Lets call such numbers "affluent" (since it has two
-abundant "children")
+It is known that any multiple of an abundant number is itself abundant.
 
-/*> isAffluent :: Integer -> Bool*/
+The key insight, we don't need every abundant number, merely all the 'least'
+abundant numbers, that is, we need all the abundant numbers such that it is not
+the of the form `2k`, where `k` is an abundant number. Once we have these
+'minimally' abundant numbers, we can easily start folding in multiples of these,
+and once we've folded in the multiples, it's a simple matter of finding the
+closure under sum.
 
-We know that some abundant numbers can be affluent, since `24` is abundant, and
-the sum of two abundants (`12` and `12`). So here's a natural question -- is
-twice an abundant number always abundant? We can do a quick scan for
-counterexamples with:
+> abundants_less_than lim = abundants_helper [12..lim] lim []
 
-> counterexample_check = [ x | x <- [1..28123], isAbundant x && (not . isAbundant)(x * 2) ]
+> abundants_helper [] _ acc = acc
+> abundants_helper (x:xs) lim acc 
+>   | isAbundant x = abundants_helper next_xs lim (ms ++ acc)
+>   | otherwise    = abundants_helper xs lim acc
+>   where ms = multiples x lim
+>         next_xs = filter (not . flip elem ms) xs
 
-Since we only care that this is true for numbers less than 28123, we can just do
-an exhaustive search like the above
+
+> multiples v limit = takeWhile (<=limit) [k * v | k <- [1..]]
+                  
+
+            
