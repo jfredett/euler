@@ -12,6 +12,9 @@ digits.
 Note: as 1! = 1 and 2! = 2 are not sums they are not included. 
 ===============================================================================
 
+> import Data.List (sort)
+> import Data.Set (fromList, toList)
+
 
 > digits :: Integer -> [Integer]
 > digits = reverse . digits' 
@@ -85,7 +88,77 @@ that'll get us down to ~7 million values. We can also make a stronger statement
 
 This gets us to just under 6 million.
 
-Next, consider
+Next, consider if a value contains a digit, but is less than that digit
+factorial -- eg, `55` contains a `5`, but is less than `5!`, this provides a
+whole host of reductions to do. 
+
+> isBigEnough x = all (isBigEnough' x) [0..9]
+>   where isBigEnough' x d 
+>            | d `elem` (digits x) = factorial d < x
+>            | otherwise           = True
+
+However, this gives us _far_ too small of a reduction (even though it applies to
+many things, most of those things aren't filtered.
+
+This indicates a problem -- there's really no way to reduce this much further.
+Rather, we need a new approach.
+
+--------
+
+Using our previous result, we know that there are at most 7 digits (since the
+possibly figitiable maximum value is somewhere shortly north of 8 million, a 7
+digit number). 
+
+We know that what we really want is a sort of "set" of digits -- particularly,
+we want the number of sets of digits, without regard to order, and with regard
+to repetition. Eg `[1,1,2]` is a valid set, to which `[1,2,1]` and `[2,1,1]` is
+equivalent. Essentially we want to chose values from a list like:
+
+    [ [ (0,0), (1,0), (2,0) ... ],
+      [ (1,0), (1,1) ... ],
+      ...
+      [ (7,0) ... (7,8) ] ] 
+
+where the first digit indicates the position of the digit, and the latter digit
+at that position. We need to choose one element from each set, but ignoring
+ordering -- so [(0,1), (1,1), (2,2)] should equal [(0,1), (1,2), (2,1)].
+Processing 8 million subsets of these is far less intensive, so, hopefully it
+will be fast enough to just get all of the values, filter the duplicates, and
+then process the results to see which are figitals. 
+
+> data Figit = Figit Integer Integer -- first is place, second is value
+>     deriving (Eq, Show)
+> -- this will need a new imp of Eq, so it's a newtype
+> newtype Figital = Figital [Figit]
+>     deriving Show
+
+> mkFigit :: Integer -> Figital
+> mkFigit x = Figital . map (uncurry Figit) $ (zip [0..] (digits x))
+
+
+> value :: Figit -> Integer
+> value (Figit _ v) = v
+> pos :: Figit -> Integer
+> pos (Figit i _) = i
+
+> toDigital :: Figital -> Integer
+> toDigital (Figital [])     = 0
+> toDigital (Figital (x:xs)) = 10^(pos x) * (value x) + (toDigital . Figital $ xs) 
+
+> instance Eq Figital where
+>    Figital ls == Figital ms = (sort . map value $ ls) == (sort . map value $ ms)
+> instance Ord Figital where
+>    fs <= ms = toDigital fs <= toDigital ms
+
+Now we can compare (and importantly, reduce) a list of possible values to a
+minimum set. We know that the sum of these digits will be unique, so we don't
+have to worry about not counting enough.
+
+In fact, building the figitals for the 8 million digits is lightning fast in the
+interpreter, now lets build the uniqification filter. Fortunately, this is done
+for us! It's just called Data.Set!
+
+> solve_thirty_four_via_set = fromList [mkFigit x | x <- [145..8071643], isFigitable x]
 
 
 
