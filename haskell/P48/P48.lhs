@@ -13,5 +13,5 @@ Approach is simple, modular exp each of the components, modular sum.
 
 > import PELib.PELib
 
-> lll :: Integer
-> lll = foldr (\a e -> (a + e) `mod` (10^10)) 0 [modExp x x (10^10) | x <- [1..1000]]
+> solve_forty_eight :: Integer
+> solve_forty_eight = foldr (\a e -> (a + e) `mod` (10^10)) 0 [modExp x x (10^10) | x <- [1..1000]]
