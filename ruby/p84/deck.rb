@@ -1,4 +1,4 @@
-require './p84/card'
+require './card'
 
 module P84 
   #decks of cards

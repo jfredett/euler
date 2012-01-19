@@ -1,6 +1,6 @@
-require './p84/card'
-require './p84/deck'
-require './p84/square'
+require './card'
+require './deck'
+require './square'
 
 module P84 
   class GameSet

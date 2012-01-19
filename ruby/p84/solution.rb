@@ -1,6 +1,6 @@
-require './p84/gameset'
-require './patches/dice'
-require './patches/common'
+require './gameset'
+require '../patches/dice'
+require '../patches/common'
 
 module P84
   def self.run
