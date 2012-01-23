@@ -28,6 +28,12 @@ fromInteger alias
 > forceToInteger :: (RealFrac a, Floating a) => a -> Integer
 > forceToInteger d = ((floor d) :: Integer)
 
+> digits :: Integer -> [Integer]
+> digits = reverse . digits' 
+>   where digits' x 
+>           | x < 10    = [x]
+>           | otherwise = (x `mod` 10) : digits' (x `div` 10)
+
 ===============================================================================
 List of Primes
      Produces a list of the prime numbers, we use the HFM isPrime function for this
